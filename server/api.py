@@ -1,11 +1,12 @@
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sse_starlette.sse import EventSourceResponse
 import uvicorn
-from pydantic import BaseModel
 import ollama
+
+from models.user_prompt_input import UserPromptInput
+from utils.mongo_connection import MongoDB
 
 
 logger = logging.getLogger()
@@ -22,13 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class StreamAssistantInput(BaseModel):
-    model: str
-    prompt: str
-    system: str
-
+db_conn = MongoDB(collection="prompts")
 
 prompts = [
     {
@@ -42,6 +37,13 @@ prompts = [
         "prompt": "Write a python function to add two numbers",
     },
 ]
+
+
+@app.post("/prompt")
+async def store_prompt(user_input: UserPromptInput):
+    inserted_id = db_conn.insert_one(user_input.dict())
+
+    return {"prompt_id": inserted_id}
 
 
 @app.get("/stream-assistant/")
