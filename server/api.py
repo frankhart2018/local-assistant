@@ -25,19 +25,6 @@ app.add_middleware(
 )
 db_conn = MongoDB(collection="prompts")
 
-prompts = [
-    {
-        "model": "codegemma",
-        "system": "You are an expert coder, but you do not write comments, no documentation. Do not include the python start and end tags",
-        "prompt": "Write a FastAPI endpoint to serve a SSE that returns numbers from 1 to 100 after 1 second",
-    },
-    {
-        "model": "codegemma",
-        "system": "You are an expert coder, but you do not write comments, no documentation. Do not include the python start and end tags",
-        "prompt": "Write a python function to add two numbers",
-    },
-]
-
 
 @app.post("/prompt")
 async def store_prompt(user_input: UserPromptInput):
@@ -47,13 +34,15 @@ async def store_prompt(user_input: UserPromptInput):
 
 
 @app.get("/stream-assistant/")
-async def stream_assistant(id: int):
+async def stream_assistant(prompt_id: str):
     async def event_generator():
+        prompt = db_conn.find_by_id(prompt_id)
+
         for i, response in enumerate(
             ollama.generate(
-                model=prompts[id]["model"],
-                system=prompts[id]["system"],
-                prompt=prompts[id]["prompt"],
+                model=prompt["model"],
+                system=prompt["system"],
+                prompt=prompt["prompt"],
                 stream=True,
                 template="""<start_of_turn>user
 {{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
