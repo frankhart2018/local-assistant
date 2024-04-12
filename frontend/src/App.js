@@ -1,35 +1,31 @@
-import React, { useState } from 'react';
-import Markdown from "react-markdown";
+import React from "react";
+import { configureStore } from "@reduxjs/toolkit";
+import localAssistantReducer from "./reducers/local-assistant-reducer";
+import { VERSION } from "./utils/version";
+import { Provider } from "react-redux";
+import { Route, Routes } from "react-router";
+import Chat from "./components/pages/Chat/Chat";
 
-const SSEComponent = () => {
-  const [messages, setMessages] = useState("");
+const store = configureStore({
+  reducer: {
+    localAssistant: localAssistantReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
+});
 
-  const connectToSSE = () => {
-    setMessages("");
-    const eventSource = new EventSource('http://localhost:8080/stream-assistant?id=0');
-
-    eventSource.onmessage = function(event) {
-      if (event.data.trim() === "END") {
-        eventSource.close();
-        return;
-      }
-      setMessages((prev) => {
-        return `${prev}${event.data.replaceAll("<NEWLINE>", "\n")}`;
-      });
-    };
-
-    eventSource.onerror = function(error) {
-      console.error('EventSource failed:', error);
-      eventSource.close();
-    };
-  };
+const App = () => {
+  document.title = `Local Assistant v${VERSION}`;
 
   return (
-    <div>
-      <button onClick={connectToSSE}>Connect to SSE</button>
-      <Markdown>{messages}</Markdown>
-    </div>
+    <Provider store={store}>
+      <Routes>
+        <Route path="/" element={<Chat />} />
+      </Routes>
+    </Provider>
   );
 };
 
-export default SSEComponent;
+export default App;

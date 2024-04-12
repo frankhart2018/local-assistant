@@ -1,0 +1,29 @@
+.container {
+    margin: 10px;
+}
+
+.input {
+    margin: 10px;
+    border: 2px solid black;
+    border-radius: 10px;
+    padding: 5px 10px;
+}
+
+.button {
+    padding: 10px;
+    border: 2px solid black;
+    border-radius: 10px;
+    background: white;
+    font-weight: bold;
+}
+
+.button:hover {
+    background: black;
+    color: white;
+}
+
+.output-box {
+    background: gray;
+    color: white;
+}
+
