@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import Markdown from "react-markdown";
 
 const SSEComponent = () => {
   const [messages, setMessages] = useState("");
 
   const connectToSSE = () => {
+    setMessages("");
     const eventSource = new EventSource('http://localhost:8080/stream-assistant?id=0');
 
     eventSource.onmessage = function(event) {
@@ -14,7 +16,6 @@ const SSEComponent = () => {
       setMessages((prev) => {
         return `${prev}${event.data.replaceAll("<NEWLINE>", "\n")}`;
       });
-      console.log(event.lastEventId);
     };
 
     eventSource.onerror = function(error) {
@@ -26,7 +27,7 @@ const SSEComponent = () => {
   return (
     <div>
       <button onClick={connectToSSE}>Connect to SSE</button>
-      <pre>{messages}</pre>
+      <Markdown>{messages}</Markdown>
     </div>
   );
 };
