@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 import uvicorn
@@ -29,35 +30,43 @@ class StreamAssistantInput(BaseModel):
     system: str
 
 
-@app.post("/stream-assistant")
-async def stream_assistant(payload: StreamAssistantInput):
+prompts = [
+    {
+        "model": "codegemma",
+        "system": "You are an expert coder, but you do not write comments, no documentation. Do not include the python start and end tags",
+        "prompt": "Write a FastAPI endpoint to serve a SSE that returns numbers from 1 to 100 after 1 second",
+    },
+    {
+        "model": "codegemma",
+        "system": "You are an expert coder, but you do not write comments, no documentation. Do not include the python start and end tags",
+        "prompt": "Write a python function to add two numbers",
+    },
+]
+
+
+@app.get("/stream-assistant/")
+async def stream_assistant(id: int):
     async def event_generator():
         for i, response in enumerate(
             ollama.generate(
-                model=payload.model,
-                system=payload.system,
-                prompt=payload.prompt,
+                model=prompts[id]["model"],
+                system=prompts[id]["system"],
+                prompt=prompts[id]["prompt"],
                 stream=True,
+                template="""<start_of_turn>user
+{{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+{{ .Response }}<end_of_turn>""",
             )
         ):
-            response_val = response["response"]
+            response_val = response["response"].replace("\n", "<NEWLINE>")
             done = response["done"]
             if not done:
-                yield {
-                    "event": "new_message",
-                    "id": i,
-                    "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                    "data": response_val,
-                }
+                yield f"id: {i}\n\ndata: {response_val}\n\n"
             else:
-                yield {
-                    "event": "end_event",
-                    "id": i,
-                    "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                    "data": "End",
-                }
+                yield f"id: {i}\n\ndata: END\n\n"
 
-    return EventSourceResponse(event_generator())
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":
