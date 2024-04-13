@@ -1,8 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { storePromptThunk } from "../services/local-assistant-thunk";
+import {
+  fetchModelListThunk,
+  storePromptThunk,
+} from "../services/local-assistant-thunk";
 
 const initialState = {
   promptId: null,
+  modelList: null,
 };
 
 const localAssistantSlice = createSlice({
@@ -11,7 +15,7 @@ const localAssistantSlice = createSlice({
   reducers: {
     clearPromptId(state, _) {
       state.promptId = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(storePromptThunk.fulfilled, (state, action) => {
@@ -19,6 +23,13 @@ const localAssistantSlice = createSlice({
 
       if ("data" in payload) {
         state.promptId = payload.data.prompt_id;
+      }
+    });
+    builder.addCase(fetchModelListThunk.fulfilled, (state, action) => {
+      const payload = action.payload;
+
+      if ("data" in payload) {
+        state.modelList = payload.data;
       }
     });
   },

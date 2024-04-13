@@ -66,10 +66,7 @@ async def stream_assistant(prompt_id: str):
                     system=prompt["system"],
                     prompt=prompt["prompt"],
                     stream=True,
-                    template="""<start_of_turn>user
-    {{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
-    <start_of_turn>model
-    {{ .Response }}<end_of_turn>""",
+                    template=ollama.show(prompt["model"])["template"],
                 )
             ):
                 response_val = response["response"].replace("\n", "<NEWLINE>")

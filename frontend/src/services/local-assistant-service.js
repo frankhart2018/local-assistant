@@ -11,3 +11,8 @@ export const storePrompt = async (model, system, prompt) => {
 
   return response;
 };
+
+export const fetchModelList = async () => {
+  const response = await axios.get(`${API_BASE}/list-models`);
+  return response;
+};
