@@ -8,6 +8,7 @@ import asyncio
 
 from models.user_prompt_input import UserPromptInput
 from utils.mongo_connection import MongoDB
+from utils.dict_utils import safe_dict_get
 
 
 logger = logging.getLogger()
@@ -25,6 +26,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 db_conn = MongoDB(collection="prompts")
+
+
+@app.get("/list-models")
+async def list_models():
+    model_list = [
+        {
+            "name": safe_dict_get(
+                dictionary=model, keys=["name"], default_value=""
+            ).split(":")[0],
+            "parameters": safe_dict_get(
+                dictionary=model,
+                keys=["details", "parameter_size"],
+                default_value="",
+            ),
+        }
+        for model in ollama.list().get("models", {})
+    ]
+
+    return model_list
 
 
 @app.post("/prompt")
