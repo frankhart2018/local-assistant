@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import ollama
+import asyncio
 
 from models.user_prompt_input import UserPromptInput
 from utils.mongo_connection import MongoDB
@@ -38,24 +39,28 @@ async def stream_assistant(prompt_id: str):
     async def event_generator():
         prompt = db_conn.find_by_id(prompt_id)
 
-        for i, response in enumerate(
-            ollama.generate(
-                model=prompt["model"],
-                system=prompt["system"],
-                prompt=prompt["prompt"],
-                stream=True,
-                template="""<start_of_turn>user
-{{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
-<start_of_turn>model
-{{ .Response }}<end_of_turn>""",
-            )
-        ):
-            response_val = response["response"].replace("\n", "<NEWLINE>")
-            done = response["done"]
-            if not done:
-                yield f"id: {i}\n\ndata: {response_val}\n\n"
-            else:
-                yield f"id: {i}\n\ndata: END\n\n"
+        try:
+            for i, response in enumerate(
+                ollama.generate(
+                    model=prompt["model"],
+                    system=prompt["system"],
+                    prompt=prompt["prompt"],
+                    stream=True,
+                    template="""<start_of_turn>user
+    {{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
+    <start_of_turn>model
+    {{ .Response }}<end_of_turn>""",
+                )
+            ):
+                response_val = response["response"].replace("\n", "<NEWLINE>")
+                done = response["done"]
+                if not done:
+                    yield f"id: {i}\n\ndata: {response_val}\n\n"
+                else:
+                    yield f"id: {i}\n\ndata: END\n\n"
+                await asyncio.sleep(0)  # this is to handle abrupt client termination
+        except asyncio.CancelledError:
+            logger.error("ERROR: Client disconnected, stopping generation.")
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
